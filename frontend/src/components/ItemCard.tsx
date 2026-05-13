@@ -20,7 +20,7 @@ export function ItemCard({ item, onReserve }: Props) {
   const isAvailable = item.status === "available"
 
   return (
-    <Card className={`flex flex-col transition-opacity ${!isAvailable ? "opacity-60" : ""}`}>
+    <Card className={`flex flex-col transition-opacity ${!isAvailable ? "opacity-40" : ""}`}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">

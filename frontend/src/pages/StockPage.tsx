@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react"
-import { RefreshCw, Laptop, Monitor, SlidersHorizontal, X } from "lucide-react"
+import { RefreshCw, Laptop, Monitor, SlidersHorizontal, X, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -21,8 +21,10 @@ export function StockPage() {
 
   const [tab, setTab] = useState<TabValue>("pc")
   const [search, setSearch] = useState("")
+  const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
   const [statusFilter, setStatusFilter] = useState("available")
+  const [sortPrice, setSortPrice] = useState<"asc" | "desc">("asc")
 
   // Filtres PC
   const [ramFilter, setRamFilter] = useState(ALL)
@@ -55,7 +57,7 @@ export function StockPage() {
   // Réinitialise les filtres spécifiques quand on change d'onglet
   function handleTabChange(value: TabValue) {
     setTab(value)
-    setSearch(""); setMaxPrice(""); setStatusFilter("available")
+    setSearch(""); setMinPrice(""); setMaxPrice(""); setStatusFilter("available")
     setRamFilter(ALL); setProcessorFilter(ALL); setStorageFilter(ALL); setMinBattery(ALL)
     setSizeFilter(ALL); setBrandFilter(ALL)
   }
@@ -81,9 +83,10 @@ export function StockPage() {
   }, [items])
 
   const filtered = useMemo(() => {
-    return items.filter((item) => {
+    const result = items.filter((item) => {
       if (item.type !== tab) return false
       if (statusFilter !== ALL && item.status !== statusFilter) return false
+      if (minPrice && item.price < Number(minPrice)) return false
       if (maxPrice && item.price > Number(maxPrice)) return false
       if (search) {
         const q = search.toLowerCase()
@@ -104,7 +107,9 @@ export function StockPage() {
       }
       return true
     })
-  }, [items, tab, search, maxPrice, statusFilter, ramFilter, processorFilter, storageFilter, minBattery, sizeFilter, brandFilter])
+    result.sort((a, b) => sortPrice === "asc" ? a.price - b.price : b.price - a.price)
+    return result
+  }, [items, tab, search, minPrice, maxPrice, statusFilter, sortPrice, ramFilter, processorFilter, storageFilter, minBattery, sizeFilter, brandFilter])
 
   const counts = useMemo(() => ({
     pc: items.filter((i) => i.type === "pc").length,
@@ -112,12 +117,12 @@ export function StockPage() {
     available: items.filter((i) => i.status === "available").length,
   }), [items])
 
-  const hasActiveFilters = search || maxPrice || statusFilter !== "available" ||
+  const hasActiveFilters = search || minPrice || maxPrice || statusFilter !== "available" ||
     ramFilter !== ALL || processorFilter !== ALL || storageFilter !== ALL || minBattery !== ALL ||
     sizeFilter !== ALL || brandFilter !== ALL
 
   function resetFilters() {
-    setSearch(""); setMaxPrice(""); setStatusFilter("available")
+    setSearch(""); setMinPrice(""); setMaxPrice(""); setStatusFilter("available")
     setRamFilter(ALL); setProcessorFilter(ALL); setStorageFilter(ALL); setMinBattery(ALL)
     setSizeFilter(ALL); setBrandFilter(ALL)
   }
@@ -183,32 +188,52 @@ export function StockPage() {
           </div>
 
           {/* Filtres communs */}
-          <div className="flex flex-wrap gap-3">
-            <Input
-              placeholder={tab === "pc" ? "Modèle, processeur, S/N…" : "Modèle, S/N…"}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-56"
-            />
-            <Input
-              type="number"
-              placeholder="Prix max (€)"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              className="w-32"
-              min={0}
-            />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous statuts</SelectItem>
-                <SelectItem value="available">Disponibles</SelectItem>
-                <SelectItem value="reserved">Réservés</SelectItem>
-                <SelectItem value="sold">Vendus</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Recherche</span>
+              <Input
+                placeholder={tab === "pc" ? "Modèle, processeur, S/N…" : "Modèle, S/N…"}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-56"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Prix (€)</span>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className="w-24"
+                  min={0}
+                />
+                <span className="text-muted-foreground text-sm">—</span>
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="w-24"
+                  min={0}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Statut</span>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous statuts</SelectItem>
+                  <SelectItem value="available">Disponibles</SelectItem>
+                  <SelectItem value="reserved">Réservés</SelectItem>
+                  <SelectItem value="sold">Vendus</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Filtres PC */}
@@ -216,46 +241,58 @@ export function StockPage() {
             <>
               <Separator />
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Caractéristiques</p>
-              <div className="flex flex-wrap gap-3">
-                <Select value={processorFilter} onValueChange={setProcessorFilter}>
-                  <SelectTrigger className="w-52">
-                    <SelectValue placeholder="Processeur" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>Tous processeurs</SelectItem>
-                    {pcOptions.processor.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">Processeur</span>
+                  <Select value={processorFilter} onValueChange={setProcessorFilter}>
+                    <SelectTrigger className="w-52">
+                      <SelectValue placeholder="Tous" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>Tous processeurs</SelectItem>
+                      {pcOptions.processor.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                <Select value={ramFilter} onValueChange={setRamFilter}>
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="RAM" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>Toute RAM</SelectItem>
-                    {pcOptions.ram.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">RAM</span>
+                  <Select value={ramFilter} onValueChange={setRamFilter}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Toute" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>Toute RAM</SelectItem>
+                      {pcOptions.ram.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                <Select value={storageFilter} onValueChange={setStorageFilter}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Stockage" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>Tout stockage</SelectItem>
-                    {pcOptions.storage.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">Stockage</span>
+                  <Select value={storageFilter} onValueChange={setStorageFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Tout" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>Tout stockage</SelectItem>
+                      {pcOptions.storage.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                <Select value={minBattery} onValueChange={setMinBattery}>
-                  <SelectTrigger className="w-44">
-                    <SelectValue placeholder="Batterie min." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>Toute batterie</SelectItem>
-                    {pcOptions.battery.map((b) => <SelectItem key={b} value={b}>≥ {b}%</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">Batterie minimum</span>
+                  <Select value={minBattery} onValueChange={setMinBattery}>
+                    <SelectTrigger className="w-44">
+                      <SelectValue placeholder="Toute" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>Toute batterie</SelectItem>
+                      {pcOptions.battery.map((b) => <SelectItem key={b} value={b}>≥ {b}%</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </>
           )}
@@ -265,26 +302,32 @@ export function StockPage() {
             <>
               <Separator />
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Caractéristiques</p>
-              <div className="flex flex-wrap gap-3">
-                <Select value={brandFilter} onValueChange={setBrandFilter}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Marque" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>Toutes marques</SelectItem>
-                    {screenOptions.brands.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">Marque</span>
+                  <Select value={brandFilter} onValueChange={setBrandFilter}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Toutes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>Toutes marques</SelectItem>
+                      {screenOptions.brands.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                <Select value={sizeFilter} onValueChange={setSizeFilter}>
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="Taille" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>Toutes tailles</SelectItem>
-                    {screenOptions.sizes.map((s) => <SelectItem key={s} value={String(s)}>{s}"</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">Taille</span>
+                  <Select value={sizeFilter} onValueChange={setSizeFilter}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Toutes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>Toutes tailles</SelectItem>
+                      {screenOptions.sizes.map((s) => <SelectItem key={s} value={String(s)}>{s}"</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </>
           )}
@@ -294,10 +337,29 @@ export function StockPage() {
           <p className="text-sm text-muted-foreground">
             {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
           </p>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Actualiser
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border border-border overflow-hidden text-sm">
+              <button
+                onClick={() => setSortPrice("asc")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${sortPrice === "asc" ? "bg-primary text-white" : "bg-white text-foreground hover:bg-muted"}`}
+              >
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                Prix croissant
+              </button>
+              <div className="w-px h-full bg-border" />
+              <button
+                onClick={() => setSortPrice("desc")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${sortPrice === "desc" ? "bg-primary text-white" : "bg-white text-foreground hover:bg-muted"}`}
+              >
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                Prix décroissant
+              </button>
+            </div>
+            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+              Actualiser
+            </Button>
+          </div>
         </div>
 
         <Separator />
