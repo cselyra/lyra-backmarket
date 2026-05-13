@@ -1,0 +1,10 @@
+<!doctype html>
+<html>
+  <head>
+    <script>
+      // GitHub Pages SPA redirect
+      var l = window.location;
+      l.replace(l.protocol + '//' + l.host + l.pathname.split('/').slice(0, 1).join('/') + '/?p=/' + l.pathname.slice(1) + (l.search ? '&q=' + l.search.slice(1).replace(/&/g,'~and~') : '') + l.hash);
+    </script>
+  </head>
+</html>
