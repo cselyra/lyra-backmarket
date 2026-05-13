@@ -10,13 +10,13 @@ interface Props {
 }
 
 const statusConfig = {
-  available: { label: "Disponible", variant: "success" as const },
-  reserved: { label: "Réservé", variant: "warning" as const },
-  sold: { label: "Vendu", variant: "muted" as const },
+  available: { label: "Disponible", className: "bg-secondary/15 text-secondary border-secondary/30" },
+  reserved: { label: "Réservé", className: "bg-accent/20 text-amber-700 border-accent/40" },
+  sold: { label: "Vendu", className: "bg-muted text-muted-foreground border-border" },
 }
 
 export function ItemCard({ item, onReserve }: Props) {
-  const { label, variant } = statusConfig[item.status]
+  const { label, className: statusClass } = statusConfig[item.status]
   const isAvailable = item.status === "available"
 
   return (
@@ -31,7 +31,7 @@ export function ItemCard({ item, onReserve }: Props) {
             )}
             <CardTitle className="text-base leading-tight">{item.model}</CardTitle>
           </div>
-          <Badge variant={variant} className="shrink-0">{label}</Badge>
+          <Badge className={`shrink-0 border ${statusClass}`}>{label}</Badge>
         </div>
       </CardHeader>
 

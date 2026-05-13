@@ -124,17 +124,25 @@ export function StockPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-white sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Vente Matériel Informatique</h1>
-            <p className="text-sm text-muted-foreground">
+      <header className="bg-primary shadow-md">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center gap-4">
+          <img
+            src={`${import.meta.env.BASE_URL}assets/logo-cse.svg`}
+            alt="Logo CSE"
+            className="h-14 object-contain"
+          />
+          <div className="hidden sm:block w-px h-12 bg-white/25" />
+          <img
+            src={`${import.meta.env.BASE_URL}assets/logo-lyra-backmarket.png`}
+            alt="Lyra × Back Market"
+            className="h-8 object-contain brightness-0 invert"
+          />
+          <div className="sm:ml-auto text-center sm:text-right">
+            <h1 className="text-lg font-bold text-white leading-tight">Vente Matériel Informatique</h1>
+            <p className="text-sm text-white/70">
               {counts.available} article{counts.available > 1 ? "s" : ""} disponible{counts.available > 1 ? "s" : ""}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={load} disabled={loading} title="Actualiser">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
         </div>
       </header>
 
@@ -147,12 +155,14 @@ export function StockPage() {
                 key={value}
                 onClick={() => handleTabChange(value)}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  tab === value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  tab === value
+                    ? "bg-primary text-white shadow-sm"
+                    : "bg-white border border-border text-foreground hover:bg-muted"
                 }`}
               >
                 {value === "pc" ? <Laptop className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
                 {label}
-                <span className={`ml-1 text-xs rounded-full px-1.5 py-0.5 ${tab === value ? "bg-white/20" : "bg-muted"}`}>
+                <span className={`ml-1 text-xs rounded-full px-1.5 py-0.5 ${tab === value ? "bg-white/20" : "bg-muted text-muted-foreground"}`}>
                   {count}
                 </span>
               </button>
@@ -280,8 +290,14 @@ export function StockPage() {
           )}
         </div>
 
-        <div className="text-sm text-muted-foreground">
-          {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
+          </p>
+          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            Actualiser
+          </Button>
         </div>
 
         <Separator />
