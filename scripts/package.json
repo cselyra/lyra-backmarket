@@ -1,0 +1,14 @@
+{
+  "name": "cse-scripts",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "factures": "node generate-factures.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0",
+    "pdf-lib": "^1.17.1"
+  }
+}
