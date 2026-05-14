@@ -5,3 +5,5 @@ dist/
 cse-toolkit-*.json
 factures_vente_cse.pdf
 scripts/.oauth-token.json
+stock.xlsx
+stock_import.sql
