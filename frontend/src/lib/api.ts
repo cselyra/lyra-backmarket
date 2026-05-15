@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js"
 import type { StockItem } from "@/types"
 
-const supabase = createClient(
+export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 )

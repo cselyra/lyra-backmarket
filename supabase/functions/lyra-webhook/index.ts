@@ -7,101 +7,66 @@ Deno.serve(async (req) => {
 
   const rawBody = await req.text();
 
-  let data: Record<string, unknown>;
-  try {
-    data = JSON.parse(rawBody);
-  } catch {
-    return new Response("Bad request", { status: 400 });
-  }
+  // Lyra envoie en application/x-www-form-urlencoded (champs vads_*)
+  const params = new URLSearchParams(rawBody);
+  const data = Object.fromEntries(params.entries());
 
-  // LOG TEMPORAIRE — à supprimer après avoir identifié la structure du payload
-  console.log("LYRA WEBHOOK PAYLOAD:", JSON.stringify(data, null, 2));
+  const orderId = data["vads_order_id"];
+  const transStatus = data["vads_trans_status"];
 
-  const clientAnswer = (data.clientAnswer ?? {}) as Record<string, unknown>;
-  const orderDetails = (clientAnswer.orderDetails ?? {}) as Record<string, unknown>;
-  const orderStatus = clientAnswer.orderStatus as string | undefined;
-
-  // Lyra peut renvoyer notre orderId à différents endroits selon la version de l'API
-  const orderId = (clientAnswer.orderId ?? orderDetails.orderId) as string | undefined;
-
-  console.log("orderId résolu:", orderId, "| orderStatus:", orderStatus);
-  console.log("clientAnswer keys:", Object.keys(clientAnswer));
+  console.log("Lyra IPN — orderId:", orderId, "| transStatus:", transStatus);
 
   if (!orderId) {
-    console.error("Webhook Lyra: orderId introuvable dans le payload");
+    console.error("Lyra IPN: vads_order_id absent du payload");
     return new Response("OK", { status: 200 });
   }
 
-  if (orderStatus === "PAID") {
+  // AUTHORISED = paiement autorisé (capture_delay=0 → capturé immédiatement)
+  // CAPTURED   = capturé manuellement si capture_delay > 0
+  if (transStatus === "AUTHORISED" || transStatus === "CAPTURED") {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const transactions = (clientAnswer.transactions ?? []) as Record<string, unknown>[];
-    const paymentMethod = resolvePaymentMethod(transactions[0]);
+    const paymentMethod = resolvePaymentMethod(data);
 
-    // Tentative 1 : notre reservationId (RES-xxx) envoyé comme orderId à Lyra
-    const { data: byOurId } = await supabase
+    const { data: reservation } = await supabase
       .from("reservations")
       .select("id")
       .eq("id", orderId)
       .maybeSingle();
 
-    // Tentative 2 : l'ID interne Lyra stocké dans lyra_order_id
-    const { data: byLyraId } = !byOurId ? await supabase
-      .from("reservations")
-      .select("id")
-      .eq("lyra_order_id", orderId)
-      .maybeSingle() : { data: null };
-
-    const reservationId = byOurId?.id ?? byLyraId?.id;
-
-    if (!reservationId) {
-      console.error("Webhook Lyra: aucune réservation trouvée pour orderId:", orderId);
+    if (!reservation) {
+      console.error("Lyra IPN: aucune réservation pour orderId:", orderId);
       return new Response("OK", { status: 200 });
     }
 
     await supabase
       .from("reservations")
-      .update({
-        status: "paid",
-        paid_at: new Date().toISOString(),
-        payment_method: paymentMethod,
-      })
-      .eq("id", reservationId);
+      .update({ status: "paid", paid_at: new Date().toISOString(), payment_method: paymentMethod })
+      .eq("id", orderId);
 
-    console.log("Réservation mise à jour:", reservationId, "| moyen de paiement:", paymentMethod);
+    console.log("Réservation mise à jour:", orderId, "| paiement:", paymentMethod);
   }
 
   return new Response("OK", { status: 200 });
 });
 
-function resolvePaymentMethod(transaction?: Record<string, unknown>): string {
-  if (!transaction) return "Inconnu";
+function resolvePaymentMethod(params: Record<string, string>): string {
+  const brand = (params["vads_card_brand"] ?? "").toUpperCase();
+  const src = (params["vads_payment_src"] ?? "").toUpperCase();
 
-  const methodType = (transaction.paymentMethodType as string ?? "").toUpperCase();
-  const brand = ((transaction.brand ?? transaction.cardNetwork) as string ?? "").toUpperCase();
+  if (src === "APPLE_PAY") return "Apple Pay";
+  if (src === "GOOGLE_PAY") return "Google Pay";
+  if (src === "SAMSUNG_PAY") return "Samsung Pay";
+  if (src === "PAYPAL") return "PayPal";
 
-  const methodLabels: Record<string, string> = {
-    APPLE_PAY: "Apple Pay",
-    GOOGLE_PAY: "Google Pay",
-    SAMSUNG_PAY: "Samsung Pay",
-    PAYPAL: "PayPal",
+  const brandLabels: Record<string, string> = {
+    VISA: "Carte bancaire (Visa)",
+    MASTERCARD: "Carte bancaire (Mastercard)",
+    AMEX: "Carte bancaire (Amex)",
+    CB: "Carte bancaire (CB)",
   };
-  if (methodLabels[methodType]) return methodLabels[methodType];
-
-  if (methodType === "CARD") {
-    const brandLabels: Record<string, string> = {
-      VISA: "Carte bancaire (Visa)",
-      MASTERCARD: "Carte bancaire (Mastercard)",
-      AMEX: "Carte bancaire (Amex)",
-      CB: "Carte bancaire (CB)",
-    };
-    return brandLabels[brand] ?? "Carte bancaire";
-  }
-
-  // Fallback : on log pour identifier les cas non couverts
-  console.warn("resolvePaymentMethod: type non reconnu →", JSON.stringify(transaction));
-  return methodType || "Inconnu";
+  return brandLabels[brand] ?? brand ?? "Inconnu";
 }

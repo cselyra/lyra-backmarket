@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Loader2, Mail, CheckCircle2, Clock, AlertTriangle } from "lucide-react"
+import { Loader2, Mail, CheckCircle2, Clock, AlertTriangle, Ban } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -18,9 +18,11 @@ interface Props {
   item: StockItem | null
   onClose: () => void
   onSuccess: (itemId: string) => void
+  onReserving: () => void
+  conflict?: boolean
 }
 
-export function ReservationModal({ item, onClose, onSuccess }: Props) {
+export function ReservationModal({ item, onClose, onSuccess, onReserving, conflict }: Props) {
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
@@ -39,6 +41,7 @@ export function ReservationModal({ item, onClose, onSuccess }: Props) {
     if (!isValid || !item) return
     setLoading(true)
     setError(null)
+    onReserving()
     try {
       await createReservation({ itemId: item.id, firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim() })
       setDone(true)
@@ -152,6 +155,13 @@ export function ReservationModal({ item, onClose, onSuccess }: Props) {
                 </span>
               </label>
 
+              {conflict && !done && (
+                <div className="flex gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  <Ban className="h-4 w-4 shrink-0 mt-0.5" />
+                  <p><strong>Cet article vient d'être réservé par quelqu'un d'autre.</strong> Vous ne pouvez plus effectuer cette réservation.</p>
+                </div>
+              )}
+
               {error && (
                 <div className="flex gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -164,7 +174,7 @@ export function ReservationModal({ item, onClose, onSuccess }: Props) {
               <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
                 Annuler
               </Button>
-              <Button type="submit" disabled={!isValid || loading}>
+              <Button type="submit" disabled={!isValid || loading || !!conflict}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

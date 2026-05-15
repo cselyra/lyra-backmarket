@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useRef } from "react"
+import { toast } from "sonner"
 import { RefreshCw, Laptop, Monitor, SlidersHorizontal, X, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -6,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { ItemCard } from "@/components/ItemCard"
 import { ReservationModal } from "@/components/ReservationModal"
-import { fetchStock } from "@/lib/api"
+import { fetchStock, supabase } from "@/lib/api"
 import type { StockItem, PcItem, ScreenItem } from "@/types"
 
 type TabValue = "pc" | "screen"
@@ -18,6 +19,12 @@ export function StockPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null)
+
+  const justReservedAt = useRef<number>(0)
+  const lastLoadAt = useRef<number>(Date.now())
+  const wsConnected = useRef(false)
+  const [countdown, setCountdown] = useState(30)
+  const [wsActive, setWsActive] = useState(false)
 
   const [tab, setTab] = useState<TabValue>("pc")
   const [search, setSearch] = useState("")
@@ -37,6 +44,8 @@ export function StockPage() {
   const [brandFilter, setBrandFilter] = useState(ALL)
 
   async function load() {
+    lastLoadAt.current = Date.now()
+    setCountdown(30)
     setLoading(true)
     setError(null)
     try {
@@ -50,7 +59,45 @@ export function StockPage() {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - lastLoadAt.current) / 1000)
+      setCountdown(Math.max(0, 30 - elapsed))
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!wsConnected.current) load()
+    }, 30_000)
+
+    const channel = supabase
+      .channel("reservations-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, (payload) => {
+        load()
+        if (payload.eventType === "INSERT") {
+          if (Date.now() - justReservedAt.current < 5000) return
+          const r = payload.new as { model?: string; item_type?: string; price?: number }
+          const label = r.model ?? (r.item_type === "screen" ? "Un écran" : "Un ordinateur")
+          const price = r.price != null ? ` — ${r.price} €` : ""
+          toast.info(`${label}${price} vient d'être réservé. Le stock a été mis à jour automatiquement.`, { duration: 5000 })
+        }
+      })
+      .subscribe((status) => {
+        const connected = status === "SUBSCRIBED"
+        wsConnected.current = connected
+        setWsActive(connected)
+      })
+
+    return () => {
+      clearInterval(interval)
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
   function handleReservationSuccess(itemId: string) {
+    justReservedAt.current = Date.now()
     setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, status: "reserved" as const } : i))
   }
 
@@ -111,11 +158,39 @@ export function StockPage() {
     return result
   }, [items, tab, search, minPrice, maxPrice, statusFilter, sortPrice, ramFilter, processorFilter, storageFilter, minBattery, sizeFilter, brandFilter])
 
-  const counts = useMemo(() => ({
-    pc: items.filter((i) => i.type === "pc").length,
-    screen: items.filter((i) => i.type === "screen").length,
-    available: items.filter((i) => i.status === "available").length,
-  }), [items])
+  const counts = useMemo(() => {
+    const pc = items.filter((item): item is PcItem => {
+      if (item.type !== "pc") return false
+      if (statusFilter !== ALL && item.status !== statusFilter) return false
+      if (minPrice && item.price < Number(minPrice)) return false
+      if (maxPrice && item.price > Number(maxPrice)) return false
+      if (search) {
+        const q = search.toLowerCase()
+        if (!item.model.toLowerCase().includes(q) && !item.serialNumber.toLowerCase().includes(q) && !item.processor.toLowerCase().includes(q)) return false
+      }
+      if (ramFilter !== ALL && item.ram !== ramFilter) return false
+      if (processorFilter !== ALL && normalizeProcessor(item.processor) !== processorFilter) return false
+      if (storageFilter !== ALL && item.storage !== storageFilter) return false
+      if (minBattery !== ALL && (item.batteryHealth ?? 0) < Number(minBattery) / 100) return false
+      return true
+    }).length
+
+    const screen = items.filter((item): item is ScreenItem => {
+      if (item.type !== "screen") return false
+      if (statusFilter !== ALL && item.status !== statusFilter) return false
+      if (minPrice && item.price < Number(minPrice)) return false
+      if (maxPrice && item.price > Number(maxPrice)) return false
+      if (search) {
+        const q = search.toLowerCase()
+        if (!item.model.toLowerCase().includes(q) && !item.serialNumber.toLowerCase().includes(q)) return false
+      }
+      if (sizeFilter !== ALL && item.size !== Number(sizeFilter)) return false
+      if (brandFilter !== ALL && !item.model.startsWith(brandFilter)) return false
+      return true
+    }).length
+
+    return { pc, screen, available: items.filter((i) => i.status === "available").length }
+  }, [items, statusFilter, minPrice, maxPrice, search, ramFilter, processorFilter, storageFilter, minBattery, sizeFilter, brandFilter])
 
   const hasActiveFilters = search || minPrice || maxPrice || statusFilter !== "available" ||
     ramFilter !== ALL || processorFilter !== ALL || storageFilter !== ALL || minBattery !== ALL ||
@@ -153,7 +228,7 @@ export function StockPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-4">
         {/* Tabs */}
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {([["pc", "Ordinateurs", counts.pc], ["screen", "Écrans", counts.screen]] as [TabValue, string, number][]).map(
             ([value, label, count]) => (
               <button
@@ -173,6 +248,16 @@ export function StockPage() {
               </button>
             )
           )}
+          <div className="ml-auto">
+            {wsActive ? (
+              <span className="flex items-center gap-1.5 text-xs text-green-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                Actualisation en temps réel
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">Prochaine actualisation : {countdown}s</span>
+            )}
+          </div>
         </div>
 
         {/* Filtres */}
@@ -391,6 +476,8 @@ export function StockPage() {
         item={selectedItem}
         onClose={() => setSelectedItem(null)}
         onSuccess={handleReservationSuccess}
+        onReserving={() => { justReservedAt.current = Date.now() }}
+        conflict={!!selectedItem && items.find((i) => i.id === selectedItem.id)?.status !== "available"}
       />
     </div>
   )
