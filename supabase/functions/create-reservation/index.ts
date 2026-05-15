@@ -107,7 +107,7 @@ async function createLyraPaymentOrder(params: {
 }) {
   const shopId = Deno.env.get("LYRA_SHOP_ID");
   const key = Deno.env.get("LYRA_KEY");
-  const baseUrl = Deno.env.get("LYRA_BASE_URL") ?? "https://api.payzen.eu";
+  const baseUrl = Deno.env.get("LYRA_BASE_URL") ?? "https://api.lyra.com";
 
   if (!shopId || !key) {
     console.error("Lyra: LYRA_SHOP_ID ou LYRA_KEY manquant");
@@ -116,7 +116,7 @@ async function createLyraPaymentOrder(params: {
 
   const credentials = btoa(`${shopId}:${key}`);
 
-  const res = await fetch(`${baseUrl}/api-payment/V4/PaymentOrder/Create`, {
+  const res = await fetch(`${baseUrl}/api-payment/V4/Charge/CreatePaymentOrder`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${credentials}`,
@@ -135,7 +135,6 @@ async function createLyraPaymentOrder(params: {
         mailOptions: { recipient: params.email },
       },
       expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      ...(Deno.env.get("LYRA_IPN_URL") ? { ipnTargetUrl: Deno.env.get("LYRA_IPN_URL") } : {}),
     }),
   });
 
