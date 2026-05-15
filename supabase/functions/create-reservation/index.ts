@@ -135,7 +135,6 @@ async function createLyraPaymentOrder(params: {
         mailOptions: { recipient: params.email },
       },
       expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      ...(Deno.env.get("LYRA_IPN_URL") ? { ipnTargetUrl: Deno.env.get("LYRA_IPN_URL") } : {}),
     }),
   });
 
