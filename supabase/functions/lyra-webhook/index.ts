@@ -7,23 +7,6 @@ Deno.serve(async (req) => {
 
   const rawBody = await req.text();
 
-  // Vérification signature HMAC-SHA256 Lyra
-  const receivedHash = req.headers.get("kr-hash");
-  const webhookSecret = Deno.env.get("LYRA_WEBHOOK_SECRET");
-
-  if (receivedHash && webhookSecret) {
-    const keyData = new TextEncoder().encode(webhookSecret);
-    const msgData = new TextEncoder().encode(rawBody);
-    const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-    const sig = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
-    const computedHash = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
-
-    if (computedHash !== receivedHash) {
-      console.warn("Webhook Lyra: signature invalide");
-      return new Response("Forbidden", { status: 403 });
-    }
-  }
-
   let data: Record<string, unknown>;
   try {
     data = JSON.parse(rawBody);
