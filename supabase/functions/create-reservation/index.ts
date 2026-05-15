@@ -109,7 +109,10 @@ async function createLyraPaymentOrder(params: {
   const key = Deno.env.get("LYRA_KEY");
   const baseUrl = Deno.env.get("LYRA_BASE_URL") ?? "https://api.payzen.eu";
 
-  if (!shopId || !key) return null;
+  if (!shopId || !key) {
+    console.error("Lyra: LYRA_SHOP_ID ou LYRA_KEY manquant");
+    return null;
+  }
 
   const credentials = btoa(`${shopId}:${key}`);
 
@@ -136,9 +139,11 @@ async function createLyraPaymentOrder(params: {
     }),
   });
 
-  if (!res.ok) return null;
   const data = await res.json();
-  if (data.status !== "SUCCESS") return null;
+  console.log("Lyra API status HTTP:", res.status);
+  console.log("Lyra API response:", JSON.stringify(data));
+
+  if (!res.ok || data.status !== "SUCCESS") return null;
 
   return {
     orderId: data.answer.paymentOrderId as string,
