@@ -1,14 +1,31 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  Deno.env.get("FRONTEND_URL"),
+  "http://localhost:5173",
+].filter(Boolean) as string[];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: cors });
   }
+
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
 
   try {
     const { itemId, firstName, lastName, email } = await req.json();
@@ -25,7 +42,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Vérifier que l'article existe et est disponible
     const { data: item, error: itemErr } = await supabase
       .from("stock_items")
       .select("*")
@@ -34,7 +50,6 @@ Deno.serve(async (req) => {
 
     if (itemErr || !item) return json({ error: "Article introuvable" }, 404);
 
-    // Vérifier qu'il n'y a pas de réservation active sur cet article précis (par item_id)
     const { data: existing } = await supabase
       .from("reservations")
       .select("id")
@@ -46,7 +61,6 @@ Deno.serve(async (req) => {
 
     const reservationId = `RES-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
-    // Enregistrer la réservation
     const { error: insertErr } = await supabase.from("reservations").insert({
       id: reservationId,
       item_id: item.id,
@@ -62,7 +76,6 @@ Deno.serve(async (req) => {
 
     if (insertErr) throw insertErr;
 
-    // Créer le lien de paiement Lyra (envoie l'email directement via channelType MAIL)
     const lyraResult = await createLyraPaymentOrder({
       reservationId,
       amount: item.price,
@@ -71,7 +84,6 @@ Deno.serve(async (req) => {
       email: email.trim().toLowerCase(),
     });
 
-    // Mettre à jour avec l'ID Lyra si succès
     if (lyraResult) {
       await supabase
         .from("reservations")
@@ -132,11 +144,4 @@ async function createLyraPaymentOrder(params: {
     orderId: data.answer.paymentOrderId as string,
     paymentUrl: data.answer.paymentURL as string,
   };
-}
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 }
