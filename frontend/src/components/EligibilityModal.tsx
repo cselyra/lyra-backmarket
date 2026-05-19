@@ -23,8 +23,8 @@ const RULES = [
   "Je suis salarié Lyra Network ou Lyra Collect, en CDI.",
   "Je ne suis pas en période d'essai.",
   "Je ne suis pas en préavis de départ.",
-  "Je comprends que cette opération me permet d'acquérir au maximum un ordinateur et/ou un écran.",
   "J'ai au moins 1 an d'ancienneté.",
+  "Je comprends que cette opération me permet d'acquérir au maximum un ordinateur et/ou un écran.",
 ]
 
 export function EligibilityModal() {
@@ -45,7 +45,7 @@ export function EligibilityModal() {
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
-        className="sm:max-w-lg"
+        className="w-full max-w-[95vw] sm:max-w-2xl [&>button:last-child]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => e.preventDefault()}
