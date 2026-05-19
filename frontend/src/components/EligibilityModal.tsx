@@ -20,11 +20,11 @@ const CONDITIONS = [
 ]
 
 const RULES = [
-  "Je suis en CDI chez Lyra Network.",
+  "Je suis salarié Lyra Network ou Lyra Collect, en CDI.",
   "Je ne suis pas en période d'essai.",
   "Je ne suis pas en préavis de départ.",
-  "Je n'effectuerai qu'une seule commande.",
-  "J'ai au moins 1 an d'ancienneté chez Lyra Network.",
+  "Je comprends que cette opération me permet d'acquérir au maximum un ordinateur et/ou un écran.",
+  "J'ai au moins 1 an d'ancienneté.",
 ]
 
 export function EligibilityModal() {
@@ -48,12 +48,13 @@ export function EligibilityModal() {
         className="sm:max-w-lg"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <div className="flex justify-center mb-2">
             <ShieldCheck className="h-10 w-10 text-primary" />
           </div>
-          <DialogTitle className="text-center text-lg">Conditions d'éligibilité</DialogTitle>
+          <DialogTitle className="text-center text-lg">Informations sur la vente et conditions d'éligibilité</DialogTitle>
           <DialogDescription className="text-center">
             Avant d'accéder à la vente, veuillez confirmer que vous remplissez toutes les conditions suivantes.
           </DialogDescription>
@@ -61,7 +62,7 @@ export function EligibilityModal() {
 
         <div className="max-h-[60vh] overflow-y-auto space-y-4 pr-1">
         <div className="rounded-lg border bg-muted/50 px-4 py-3 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conditions de l'opération</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Informations sur la vente</p>
           <ul className="space-y-1.5">
             {CONDITIONS.map((c, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
