@@ -39,7 +39,10 @@ export async function createReservation(data: {
   const { data: result, error } = await supabase.functions.invoke("create-reservation", {
     body: data,
   })
-  if (error) throw new Error(error.message)
+  if (error) {
+    const body = await (error as { context?: Response }).context?.json?.().catch(() => null)
+    throw new Error(body?.error ?? error.message)
+  }
   if (result?.error) throw new Error(result.error)
   return result
 }
