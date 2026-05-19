@@ -11,6 +11,14 @@ import {
 
 const STORAGE_KEY = "cse-eligibility-accepted"
 
+const CONDITIONS = [
+  "Le PC est livré en l'état : l'acheteur renonce à la garantie légale de conformité.",
+  "Le PC est livré blanchi : les disques durs seront effacés à l'aide d'un logiciel certifié.",
+  "Le PC sera livré sans système d'exploitation (OS). Une licence OEM est toutefois attachée au matériel et permettra d'installer Windows Professionnel sans coût supplémentaire.",
+  "Le PC sera livré sans support.",
+  "Le PC sera livré avec son chargeur.",
+]
+
 const RULES = [
   "Je suis en CDI chez Lyra Network.",
   "Je ne suis pas en période d'essai.",
@@ -51,7 +59,21 @@ export function EligibilityModal() {
           </DialogDescription>
         </DialogHeader>
 
+        <div className="max-h-[60vh] overflow-y-auto space-y-4 pr-1">
+        <div className="rounded-lg border bg-muted/50 px-4 py-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conditions de l'opération</p>
+          <ul className="space-y-1.5">
+            {CONDITIONS.map((c, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                <span className="mt-1 shrink-0 h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                {c}
+              </li>
+            ))}
+          </ul>
+        </div>
+
         <div className="space-y-3 py-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conditions d'éligibilité</p>
           {RULES.map((rule, i) => (
             <label key={i} className="flex items-start gap-3 cursor-pointer group">
               <div className="relative mt-0.5 shrink-0">
@@ -72,6 +94,7 @@ export function EligibilityModal() {
           ))}
         </div>
 
+        </div>
         <Button onClick={handleAccept} disabled={!allChecked} className="w-full mt-2">
           J'atteste sur l'honneur respecter ces conditions
         </Button>
