@@ -155,7 +155,7 @@ export function ReservationModal({ item, onClose, onSuccess, onReserving, confli
                 </span>
               </label>
 
-              {conflict && !done && (
+              {conflict && !done && !loading && (
                 <div className="flex gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                   <Ban className="h-4 w-4 shrink-0 mt-0.5" />
                   <p><strong>Cet article vient d'être réservé par quelqu'un d'autre.</strong> Vous ne pouvez plus effectuer cette réservation.</p>

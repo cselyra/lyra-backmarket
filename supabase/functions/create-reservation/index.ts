@@ -59,6 +59,15 @@ Deno.serve(async (req) => {
 
     if (existing) return json({ error: "Cet article n'est plus disponible" }, 409);
 
+    const { data: existingEmail } = await supabase
+      .from("reservations")
+      .select("id")
+      .eq("email", email.trim().toLowerCase())
+      .in("status", ["reserved", "paid"])
+      .maybeSingle();
+
+    if (existingEmail) return json({ error: "Une réservation est déjà enregistrée pour cette adresse email." }, 409);
+
     const reservationId = `RES-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
     const { error: insertErr } = await supabase.from("reservations").insert({
