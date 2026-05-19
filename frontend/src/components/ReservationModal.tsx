@@ -174,19 +174,21 @@ export function ReservationModal({ item, onClose, onSuccess, onReserving, confli
               <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
                 Annuler
               </Button>
-              <Button type="submit" disabled={!isValid || loading || !!conflict}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Envoi…
-                  </>
-                ) : (
-                  <>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Réserver & recevoir le lien
-                  </>
-                )}
-              </Button>
+              {!error?.includes("adresse email") && (
+                <Button type="submit" disabled={!isValid || loading || !!conflict}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Envoi…
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Réserver & recevoir le lien
+                    </>
+                  )}
+                </Button>
+              )}
             </DialogFooter>
           </form>
         )}
