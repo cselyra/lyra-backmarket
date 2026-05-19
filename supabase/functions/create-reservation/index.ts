@@ -63,10 +63,11 @@ Deno.serve(async (req) => {
       .from("reservations")
       .select("id")
       .eq("email", email.trim().toLowerCase())
+      .eq("item_type", item.type)
       .in("status", ["reserved", "paid"])
       .maybeSingle();
 
-    if (existingEmail) return json({ error: "Une réservation est déjà enregistrée pour cette adresse email." }, 409);
+    if (existingEmail) return json({ error: "Une réservation est déjà enregistrée pour cette adresse email pour ce type de matériel." }, 409);
 
     const reservationId = `RES-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 

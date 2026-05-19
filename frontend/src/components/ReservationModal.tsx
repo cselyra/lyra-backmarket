@@ -174,7 +174,7 @@ export function ReservationModal({ item, onClose, onSuccess, onReserving, confli
               <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
                 Annuler
               </Button>
-              {!error?.includes("adresse email") && (
+              {!error?.includes("type de matériel") && (
                 <Button type="submit" disabled={!isValid || loading || !!conflict}>
                   {loading ? (
                     <>

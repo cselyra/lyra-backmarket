@@ -24,7 +24,7 @@ const RULES = [
   "Je ne suis pas en période d'essai.",
   "Je ne suis pas en préavis de départ.",
   "J'ai au moins 1 an d'ancienneté.",
-  "Je comprends que cette opération me permet d'acquérir au maximum un ordinateur et/ou un écran.",
+  "Je comprends que cette opération me permet d'acquérir au maximum un ordinateur et/ou un écran (une commande par type de matériel).",
 ]
 
 export function EligibilityModal() {
@@ -61,18 +61,6 @@ export function EligibilityModal() {
         </DialogHeader>
 
         <div className="max-h-[60vh] overflow-y-auto space-y-4 pr-1">
-        <div className="rounded-lg border bg-muted/50 px-4 py-3 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Informations sur la vente</p>
-          <ul className="space-y-1.5">
-            {CONDITIONS.map((c, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <span className="mt-1 shrink-0 h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
-                {c}
-              </li>
-            ))}
-          </ul>
-        </div>
-
         <div className="space-y-3 py-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conditions d'éligibilité</p>
           {RULES.map((rule, i) => (
@@ -93,6 +81,18 @@ export function EligibilityModal() {
               <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{rule}</span>
             </label>
           ))}
+        </div>
+
+        <div className="rounded-lg border bg-muted/50 px-4 py-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Informations sur la vente</p>
+          <ul className="space-y-1.5">
+            {CONDITIONS.map((c, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                <span className="mt-1 shrink-0 h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                {c}
+              </li>
+            ))}
+          </ul>
         </div>
 
         </div>
