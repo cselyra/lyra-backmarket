@@ -103,6 +103,12 @@ async function main() {
   }
   console.log(`${reservations.length} réservations payées trouvées.\n`);
 
+  const itemIds = [...new Set(reservations.map((r) => r.item_id).filter(Boolean))];
+  const { data: stockItems } = itemIds.length
+    ? await supabase.from("stock_items").select("id, processor, ram, storage, type").in("id", itemIds)
+    : { data: [] };
+  const itemMap = Object.fromEntries((stockItems || []).map((i) => [i.id, i]));
+
   // Dossier temporaire dans le Drive de l'utilisateur
   const folderRes = await drive.files.create({
     requestBody: {
@@ -124,6 +130,13 @@ async function main() {
     const montantHT = Math.round((montantTTC / 1.2) * 100) / 100;
     const tva = Math.round((montantTTC - montantHT) * 100) / 100;
 
+    const stockItem = itemMap[r.item_id] || {};
+    const descParts = [r.model];
+    if (stockItem.processor) descParts.push(stockItem.processor);
+    if (stockItem.ram) descParts.push(`${stockItem.ram} RAM`);
+    if (stockItem.storage) descParts.push(stockItem.storage);
+    const descriptionDetaillee = descParts.join(" — ");
+
     const variables = {
       "{{ Nom de famille }}": r.last_name,
       "{{ Prénom }}": r.first_name,
@@ -134,7 +147,10 @@ async function main() {
       "{{ HT }}": formatEur(montantHT),
       "{{ TVA }}": formatEur(tva),
       "{{ Modèle machine }}": r.model,
-      "{{ Référence unique de la machine }}": r.serial_number,
+      "{{ Description détaillée }}": descriptionDetaillee,
+      "{{ Référence unique de la machine }}": r.serial_number ?? "",
+      "{{ Numéro de série }}": r.serial_number ?? "",
+      "{{ Matériel occasion }}": r.item_type === "pc" ? "Ordinateur d'occasion" : "Écran d'occasion",
       "{{ Mode de paiement choisi }}": r.payment_method ?? "Inconnu",
       "{{ Date et heure formatée }}": formatDateTime(r.created_at),
     };
