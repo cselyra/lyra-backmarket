@@ -14,6 +14,13 @@ type TabValue = "pc" | "screen"
 
 const ALL = "all"
 
+const SCREEN_GALLERY = [
+  { src: "SAMS19C450MW.jpg",    label: "Samsung S19C450MW",  sub: '19"' },
+  { src: "SAMS22E450BW_2.jpg",  label: "Samsung S22E450BW",  sub: '22"' },
+  { src: "ACEV247YBI_1.jpg",    label: "Acer V247YBI",       sub: '24"' },
+  { src: "WORTERLED2226W.jpg",  label: "Worterled LED",      sub: '22"' },
+]
+
 export function StockPage() {
   const [items, setItems] = useState<StockItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -417,6 +424,30 @@ export function StockPage() {
             </>
           )}
         </div>
+
+        {/* Galerie visuels écrans */}
+        {tab === "screen" && (
+          <div className="rounded-lg border bg-card p-4 space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Visuels des modèles</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {SCREEN_GALLERY.map(({ src, label, sub }) => (
+                <div key={src} className="flex flex-col items-center gap-2">
+                  <div className="w-full aspect-[4/3] rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                    <img
+                      src={`${import.meta.env.BASE_URL}assets/${src}`}
+                      alt={label}
+                      className="w-full h-full object-contain p-2"
+                    />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-medium leading-tight">{label}</p>
+                    <p className="text-xs text-muted-foreground">{sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
