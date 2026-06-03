@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { getReservation } from "@/lib/api"
-import type { Reservation } from "@/types"
+import type { Reservation, ReservationSpecs } from "@/types"
 
 const STATUS_LABEL: Record<string, string> = {
   reserved: "En attente de paiement",
@@ -147,13 +147,16 @@ function ReservationCard({ reservation: r }: { reservation: Reservation }) {
         {/* Article */}
         <div className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Article</p>
-          <div className="flex items-start gap-3 rounded-md border bg-muted/40 p-3">
-            <ItemIcon className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
-            <div className="space-y-0.5">
-              <p className="text-sm font-medium leading-tight">{r.model}</p>
-              <p className="text-xs text-muted-foreground">{itemLabel} · S/N {r.serialNumber}</p>
-              <p className="text-sm font-semibold text-primary">{r.price} €</p>
+          <div className="rounded-md border bg-muted/40 p-3 space-y-3">
+            <div className="flex items-start gap-3">
+              <ItemIcon className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium leading-tight">{r.model}</p>
+                <p className="text-xs text-muted-foreground">{itemLabel} · S/N {r.serialNumber}</p>
+                <p className="text-sm font-semibold text-primary">{r.price} €</p>
+              </div>
             </div>
+            {r.specs && <SpecsGrid type={r.itemType} specs={r.specs} />}
           </div>
         </div>
 
@@ -203,4 +206,37 @@ function ReservationCard({ reservation: r }: { reservation: Reservation }) {
       </div>
     </div>
   )
+}
+
+function SpecsGrid({ type, specs }: { type: "pc" | "screen"; specs: ReservationSpecs }) {
+  const rows: { label: string; value: string }[] = []
+
+  if (type === "pc") {
+    if (specs.processor) rows.push({ label: "Processeur", value: normalizeProcessor(specs.processor) })
+    if (specs.ram) rows.push({ label: "RAM", value: specs.ram })
+    if (specs.storage) rows.push({ label: "Stockage", value: specs.storage })
+    if (specs.batteryHealth != null) rows.push({ label: "Batterie", value: `${Math.round(specs.batteryHealth * 100)} %` })
+    if (specs.exteriorCondition) rows.push({ label: "État extérieur", value: specs.exteriorCondition })
+  } else {
+    if (specs.size) rows.push({ label: "Taille", value: `${specs.size}"` })
+  }
+
+  if (rows.length === 0) return null
+
+  return (
+    <div className="border-t pt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
+      {rows.map(({ label, value }) => (
+        <div key={label} className="contents">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <span className="text-xs font-medium">{value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function normalizeProcessor(raw: string): string {
+  const m = raw.match(/I(\d)\s+de\s+(\d+)/i)
+  if (!m) return raw
+  return `Intel Core i${m[1]} — ${m[2]}e génération`
 }

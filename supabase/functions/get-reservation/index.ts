@@ -41,7 +41,11 @@ Deno.serve(async (req) => {
 
   const { data, error } = await supabase
     .from("reservations")
-    .select("id, status, first_name, last_name, item_type, model, serial_number, price, payment_url, created_at, paid_at, payment_method")
+    .select(`
+      id, status, first_name, last_name, item_type, model, serial_number, price,
+      payment_url, created_at, paid_at, payment_method,
+      stock_items!item_id(processor, ram, storage, battery_health, exterior_condition, warranty_end, size)
+    `)
     .eq("id", reservationId)
     .maybeSingle();
 
@@ -54,5 +58,6 @@ Deno.serve(async (req) => {
     return json({ error: "Réservation introuvable" }, 404);
   }
 
-  return json(data);
+  const { stock_items, ...reservation } = data as typeof data & { stock_items: Record<string, unknown> | null };
+  return json({ ...reservation, specs: stock_items ?? null });
 });

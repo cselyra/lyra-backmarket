@@ -32,6 +32,16 @@ export type StockItem = PcItem | ScreenItem
 
 export type ReservationStatus = "reserved" | "paid" | "cancelled"
 
+export interface ReservationSpecs {
+  processor?: string | null
+  ram?: string | null
+  storage?: string | null
+  batteryHealth?: number | null
+  exteriorCondition?: string | null
+  warrantyEnd?: string | null
+  size?: number | null
+}
+
 export interface Reservation {
   id: string
   status: ReservationStatus
@@ -45,4 +55,5 @@ export interface Reservation {
   createdAt: string
   paidAt: string | null
   paymentMethod: string | null
+  specs: ReservationSpecs | null
 }

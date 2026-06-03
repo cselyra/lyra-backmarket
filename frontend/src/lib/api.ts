@@ -62,7 +62,9 @@ function snakeToCamel(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(obj).map(([k, v]) => [
       k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()),
-      v,
+      v && typeof v === "object" && !Array.isArray(v)
+        ? snakeToCamel(v as Record<string, unknown>)
+        : v,
     ])
   )
 }
