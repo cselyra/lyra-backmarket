@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
-import type { StockItem } from "@/types"
+import type { StockItem, Reservation } from "@/types"
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -45,6 +45,16 @@ export async function createReservation(data: {
   }
   if (result?.error) throw new Error(result.error)
   return result
+}
+
+export async function getReservation(reservationId: string): Promise<Reservation> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-reservation?id=${encodeURIComponent(reservationId.trim().toUpperCase())}`
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json.error ?? "Erreur serveur")
+  return snakeToCamel(json) as unknown as Reservation
 }
 
 // Convertit les colonnes snake_case de Supabase en camelCase pour le frontend

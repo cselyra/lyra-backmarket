@@ -29,3 +29,20 @@ export interface ScreenItem {
 }
 
 export type StockItem = PcItem | ScreenItem
+
+export type ReservationStatus = "reserved" | "paid" | "cancelled"
+
+export interface Reservation {
+  id: string
+  status: ReservationStatus
+  firstName: string
+  lastName: string
+  itemType: "pc" | "screen"
+  model: string
+  serialNumber: string
+  price: number
+  paymentUrl: string | null
+  createdAt: string
+  paidAt: string | null
+  paymentMethod: string | null
+}
